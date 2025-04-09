@@ -1,4 +1,4 @@
-## testing once more ##
+## changed the docker and git credentials ID ##
 pipeline {
     agent any
 
@@ -12,7 +12,7 @@ pipeline {
         stage('Clone Repo') {
             steps {
                 
-                git credentialsId: 'github-credentials-id', url: 'https://github.com/vishyswaminathan/pragra-docker.git'
+                git credentialsId: 'gitsshkey', url: 'https://github.com/vishyswaminathan/pragra-docker.git'
             }
         }
 
