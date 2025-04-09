@@ -23,20 +23,21 @@ pipeline {
             }
         }
 
-stage('Push to Docker Hub') {
-    steps {
-        script {
-            echo "Pushing to Docker Hub with image: ${IMAGE_NAME}"
-            
-            // Use withCredentials to wrap the Docker Hub credentials
-            withCredentials([string(credentialsId: 'dockerhub-creds', variable: 'DOCKERHUB_TOKEN')]) {
-                docker.withRegistry('https://registry.hub.docker.com', DOCKERHUB_TOKEN) {
-                    docker.image("${IMAGE_NAME}").push("latest")
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    echo "Pushing to Docker Hub with image: ${IMAGE_NAME}"
+                    
+                    // Use withCredentials to wrap the Docker Hub credentials
+                    withCredentials([string(credentialsId: 'dockerhub-creds', variable: 'DOCKERHUB_TOKEN')]) {
+                        docker.withRegistry('https://registry.hub.docker.com', DOCKERHUB_TOKEN) {
+                            docker.image("${IMAGE_NAME}").push("latest")
+                        }
+                    }
                 }
             }
         }
     }
-}
 
     post {
         success {
