@@ -29,8 +29,8 @@ pipeline {
                     
                     // Use withCredentials to wrap the Docker Hub credentials
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        // Use the correct format for the registry URL
-                        docker.withRegistry('https://registry.hub.docker.com', "docker://${DOCKER_USER}:${DOCKER_PASSWORD}") {
+                        // Use the correct format for the registry URL without the 'docker://' prefix
+                        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-creds') {
                             docker.image("${IMAGE_NAME}").push("latest")
                         }
                     }
@@ -48,3 +48,4 @@ pipeline {
         }
     }
 }
+
