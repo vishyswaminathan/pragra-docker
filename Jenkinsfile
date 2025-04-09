@@ -1,4 +1,4 @@
-// changed the docker and git credentials ID 
+// lets try this again 
 // GIT_CREDENTIALS = credentials('github-credentials-id') 
 pipeline {
     agent any
