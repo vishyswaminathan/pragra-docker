@@ -23,23 +23,20 @@ pipeline {
             }
         }
 
-        stage('Push to Docker Hub') {
-            steps {
-                script {
-                    echo "Pushing to Docker Hub with image: ${IMAGE_NAME}"
-                    // Unpacking credentials into username and password
-                    def dockerUsername = DOCKERHUB_CREDENTIALS_USR
-                    def dockerPassword = DOCKERHUB_CREDENTIALS_PSW
-                    echo "Using username: ${dockerUsername}"
-                    
-                    // Authenticating and pushing the image to Docker Hub
-                    docker.withRegistry('https://registry.hub.docker.com', dockerUsername, dockerPassword) {
-                        docker.image("${IMAGE_NAME}").push("latest")
-                    }
+stage('Push to Docker Hub') {
+    steps {
+        script {
+            echo "Pushing to Docker Hub with image: ${IMAGE_NAME}"
+            
+            // Use withCredentials to wrap the Docker Hub credentials
+            withCredentials([string(credentialsId: 'dockerhub-creds', variable: 'DOCKERHUB_TOKEN')]) {
+                docker.withRegistry('https://registry.hub.docker.com', DOCKERHUB_TOKEN) {
+                    docker.image("${IMAGE_NAME}").push("latest")
                 }
             }
         }
     }
+}
 
     post {
         success {
