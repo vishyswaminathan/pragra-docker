@@ -1,4 +1,4 @@
-// re updated the docker hub creds in jenkins
+// updated the docker hub creds to PAT token and also added echo
 // GIT_CREDENTIALS = credentials('github-credentials-id') 
 pipeline {
     agent any
@@ -28,7 +28,8 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
+                    echo "Pushing to Docker Hub with image: ${IMAGE_NAME}"
+                    docker.withRegistry('https://registry.hub.docker.com', DOCKERHUB_CREDENTIALS) {
                         docker.image("${IMAGE_NAME}").push("latest")
                     }
                 }
