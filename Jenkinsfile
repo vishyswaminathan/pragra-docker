@@ -29,8 +29,8 @@ pipeline {
                     echo "Pushing to Docker Hub with image: ${IMAGE_NAME}"
                     
                     // Use withCredentials to wrap the Docker Hub credentials
-                    withCredentials([string(credentialsId: 'dockerhub-creds', variable: 'DOCKERHUB_TOKEN')]) {
-                        docker.withRegistry('https://registry.hub.docker.com', DOCKERHUB_TOKEN) {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        docker.withRegistry('https://registry.hub.docker.com', "docker://${DOCKER_USER}:${DOCKER_PASSWORD}") {
                             docker.image("${IMAGE_NAME}").push("latest")
                         }
                     }
