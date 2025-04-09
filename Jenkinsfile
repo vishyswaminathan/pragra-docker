@@ -5,7 +5,6 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'vishyswaminathan/python-image:v1'
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')  // This should be a 'usernamePassword' type credential in Jenkins
     }
 
     stages {
@@ -30,6 +29,7 @@ pipeline {
                     
                     // Use withCredentials to wrap the Docker Hub credentials
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        // Use the correct format for the registry URL
                         docker.withRegistry('https://registry.hub.docker.com', "docker://${DOCKER_USER}:${DOCKER_PASSWORD}") {
                             docker.image("${IMAGE_NAME}").push("latest")
                         }
