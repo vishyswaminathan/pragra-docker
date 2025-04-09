@@ -1,4 +1,4 @@
-// updated the docker hub creds to PAT token and also added echo
+// once again updated this file
 // GIT_CREDENTIALS = credentials('github-credentials-id') 
 pipeline {
     agent any
