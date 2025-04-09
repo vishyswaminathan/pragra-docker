@@ -1,4 +1,5 @@
-## changed the docker and git credentials ID ##
+// changed the docker and git credentials ID 
+// GIT_CREDENTIALS = credentials('github-credentials-id') 
 pipeline {
     agent any
 
@@ -7,7 +8,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
        
     }
-### GIT_CREDENTIALS = credentials('github-credentials-id') ###
+
     stages {
         stage('Clone Repo') {
             steps {
@@ -40,7 +41,7 @@ pipeline {
             echo "Docker image pushed successfully to Docker Hub!"
         }
         failure {
-            echo "Something went wrong 😞"
+            echo "Something went wrong "
         }
     }
 }
