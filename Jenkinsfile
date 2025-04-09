@@ -13,7 +13,7 @@ pipeline {
         stage('Clone Repo') {
             steps {
                 
-                git credentialsId: 'gitsshkey', url: 'https://github.com/vishyswaminathan/pragra-docker.git'
+                git credentialsId: 'gitsshkey', url: 'git@github.com:vishyswaminathan/pragra-docker.git'
             }
         }
 
