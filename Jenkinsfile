@@ -1,4 +1,4 @@
-// lets try this again 
+// added jenkins to the docker group
 // GIT_CREDENTIALS = credentials('github-credentials-id') 
 pipeline {
     agent any
