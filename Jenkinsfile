@@ -1,5 +1,5 @@
 // THIS JENKINS FILE FINALLY WORKED - WINNER. updated docker remove image step
-// GIT_CREDENTIALS = credentials('github-credentials-id') testing.
+// GIT_CREDENTIALS = credentials('github-credentials-id') testing AGAIN
 pipeline {
     agent any
 
