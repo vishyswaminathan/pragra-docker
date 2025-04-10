@@ -1,3 +1,5 @@
+// lets try this complete automation
+
 pipeline {
     agent any
 
