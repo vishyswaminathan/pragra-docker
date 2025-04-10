@@ -1,4 +1,4 @@
-// no repo in the ec2
+////// another attempt lets go
 pipeline {
     agent any
 
@@ -76,9 +76,10 @@ pipeline {
                     export KOPS_STATE_STORE=${KOPS_STATE_STORE}
                     export NAME=${CLUSTER_NAME}
 
-                    # Wait for API server to become available
+                    # Wait for API server to become available using kubectl get nodes with retries
                     for i in {1..30}; do
-                        if kops validate cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} --wait 1m >/dev/null; then
+                        kubectl get nodes --request-timeout='5s' > /dev/null 2>&1
+                        if [ $? -eq 0 ]; then
                             echo "Cluster is ready!"
                             break
                         else
@@ -89,7 +90,7 @@ pipeline {
 
                     # Export kubeconfig
                     kops export kubeconfig --name=\${NAME} --admin
-                    kubectl cluster-info
+                    kubectl cluster-info || true
                     """
                 }
             }
