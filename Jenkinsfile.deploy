@@ -1,4 +1,4 @@
-//once again time to try both pipelines with helm and kubernetes 
+// updated control plane to master size
 pipeline {
     agent any
 
@@ -28,7 +28,7 @@ pipeline {
                         --zones=${ZONES} \
                         --node-count=2 \
                         --node-size=t3.small \
-                        --control-plane-size=t3.medium \
+                        --master-size=t3.medium \
                         --node-volume-size=12 \
                         --control-plane-volume-size=12 \
                         --ssh-public-key=${SSH_PUBLIC_KEY_PATH} \
