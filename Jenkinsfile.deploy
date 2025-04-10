@@ -30,7 +30,7 @@ pipeline {
                         --node-size=t3.small \
                         --master-size=t3.medium \
                         --node-volume-size=12 \
-                        --master-size-volume-size=12 \
+                        --master-volume-size=12 \
                         --ssh-public-key=${SSH_PUBLIC_KEY_PATH} \
                         --yes
                     '''
