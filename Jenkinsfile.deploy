@@ -1,4 +1,4 @@
-// lets try this complete automation
+// new pipeline script
 
 pipeline {
     agent any
@@ -15,23 +15,14 @@ pipeline {
     }
 
     stages {
-        stage('Configure AWS') {
+        stage('Verify AWS Configuration') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-                ]) {
-                    script {
-                        sh """
-                        export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-                        export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-                        export AWS_DEFAULT_REGION=${AWS_REGION}
-                        
-                        # Verify AWS access
-                        aws sts get-caller-identity
-                        aws s3 ls ${KOPS_STATE_STORE} || echo "S3 access verified"
-                        """
-                    }
+                script {
+                    sh """
+                    echo "Verifying AWS configuration..."
+                    aws sts get-caller-identity
+                    aws s3 ls ${KOPS_STATE_STORE} || echo "S3 bucket access verified"
+                    """
                 }
             }
         }
@@ -51,64 +42,48 @@ pipeline {
 
         stage('Create Kubernetes Cluster with Kops') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-                ]) {
-                    script {
-                        sh """
-                        export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-                        export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-                        export AWS_DEFAULT_REGION=${AWS_REGION}
-                        export KOPS_STATE_STORE=${KOPS_STATE_STORE}
-                        export NAME=${CLUSTER_NAME}
+                script {
+                    sh """
+                    export AWS_DEFAULT_REGION=${AWS_REGION}
+                    export KOPS_STATE_STORE=${KOPS_STATE_STORE}
+                    export NAME=${CLUSTER_NAME}
 
-                        echo "Creating Kubernetes cluster: ${CLUSTER_NAME}"
-                        echo "Using SSH key from: ${SSH_PUBLIC_KEY_PATH}"
+                    echo "Creating Kubernetes cluster: ${CLUSTER_NAME}"
+                    echo "Using SSH key from: ${SSH_PUBLIC_KEY_PATH}"
 
-                        kops create cluster --name=\${NAME} \
-                            --state=\${KOPS_STATE_STORE} \
-                            --zones=${ZONES} \
-                            --node-count=2 \
-                            --node-size=t3.small \
-                            --master-size=t3.medium \
-                            --node-volume-size=12 \
-                            --master-volume-size=12 \
-                            --ssh-public-key=${SSH_PUBLIC_KEY_PATH} \
-                            --yes
-                        """
-                    }
+                    kops create cluster --name=\${NAME} \\
+                        --state=\${KOPS_STATE_STORE} \\
+                        --zones=${ZONES} \\
+                        --node-count=2 \\
+                        --node-size=t3.small \\
+                        --master-size=t3.medium \\
+                        --node-volume-size=12 \\
+                        --master-volume-size=12 \\
+                        --ssh-public-key=${SSH_PUBLIC_KEY_PATH} \\
+                        --yes
+                    """
                 }
             }
         }
 
         stage('Wait for Cluster to be Ready') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-                ]) {
-                    script {
-                        sh """
-                        export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-                        export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-                        export AWS_DEFAULT_REGION=${AWS_REGION}
-                        export KOPS_STATE_STORE=${KOPS_STATE_STORE}
-                        export NAME=${CLUSTER_NAME}
+                script {
+                    echo "Waiting for cluster nodes to become ready..."
+                    sh """
+                    export AWS_DEFAULT_REGION=${AWS_REGION}
+                    export KOPS_STATE_STORE=${KOPS_STATE_STORE}
+                    export NAME=${CLUSTER_NAME}
 
-                        # Export kubeconfig
-                        kops export kubeconfig --name=\${NAME} --admin
+                    # Export kubeconfig
+                    kops export kubeconfig --name=\${NAME} --admin
 
-                        # Wait for nodes with timeout
-                        timeout 600 bash -c -- 'while ! kubectl get nodes 2>/dev/null | grep -q Ready; do
-                            echo "Waiting for nodes to be ready..."
-                            sleep 30
-                        done'
-                        
-                        # Verify all nodes are ready
-                        kubectl get nodes
-                        """
-                    }
+                    # Wait for nodes with timeout
+                    timeout 600 bash -c -- 'while ! kubectl get nodes 2>/dev/null | grep -q Ready; do
+                        echo "Waiting for nodes to be ready..."
+                        sleep 30
+                    done'
+                    """
                 }
             }
         }
@@ -118,9 +93,9 @@ pipeline {
                 script {
                     sh """
                     echo "Deploying application using Helm"
-                    helm upgrade --install python-app ${HELM_CHART_PATH} \
-                        --set image.repository=${IMAGE_NAME} \
-                        --set image.tag=${IMAGE_TAG} \
+                    helm upgrade --install python-app ${HELM_CHART_PATH} \\
+                        --set image.repository=${IMAGE_NAME} \\
+                        --set image.tag=${IMAGE_TAG} \\
                         --wait --timeout 5m
                     """
                 }
@@ -133,6 +108,8 @@ pipeline {
                     sh """
                     kubectl rollout status deployment/python-app
                     kubectl get pods -o wide
+                    echo "Application endpoint:"
+                    kubectl get svc python-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
                     """
                 }
             }
@@ -142,29 +119,14 @@ pipeline {
     post {
         success {
             echo "✅ Cluster created and application deployed successfully!"
-            sh """
-            echo "Access the application with:"
-            kubectl get svc python-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-            """
         }
         failure {
             echo "❌ Pipeline failed. Check the logs above."
             script {
-                withCredentials([
-                    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-                ]) {
-                    sh """
-                    export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-                    export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-                    kops delete cluster --name=${CLUSTER_NAME} --yes || true
-                    """
-                }
-            }
-        }
-        always {
-            script {
-                archiveArtifacts artifacts: '**/kubeconfig', allowEmptyArchive: true
+                sh """
+                export AWS_DEFAULT_REGION=${AWS_REGION}
+                kops delete cluster --name=${CLUSTER_NAME} --yes || true
+                """
             }
         }
     }
