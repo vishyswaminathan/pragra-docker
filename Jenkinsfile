@@ -1,4 +1,4 @@
-// THIS JENKINS FILE FINALLY WORKED - WINNER
+// THIS JENKINS FILE FINALLY WORKED - WINNER. updated docker remove image step
 // GIT_CREDENTIALS = credentials('github-credentials-id') 
 pipeline {
     agent any
@@ -37,6 +37,19 @@ pipeline {
                 }
             }
         }
+         stage('Cleanup Local Docker Image') {
+            steps {
+                script {
+                    echo "Cleaning up local Docker image to free space"
+                    sh """
+                         docker rmi ${IMAGE_NAME} || true
+                         docker rmi vishyswaminathan/python-image:latest || true
+                    """
+                    
+                }
+            }
+        }
+
     }
 
     post {
