@@ -1,3 +1,4 @@
+//once again time to try both pipelines with helm and kubernetes 
 pipeline {
     agent any
 
