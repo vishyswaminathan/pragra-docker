@@ -70,31 +70,26 @@ pipeline {
         stage('Wait for Cluster to be Ready') {
             steps {
                 script {
-                    echo "Waiting for cluster nodes to become ready..."
+                    echo "Waiting for cluster to become ready (this may take 10-15 minutes)..."
                     sh """
                     export AWS_DEFAULT_REGION=${AWS_REGION}
                     export KOPS_STATE_STORE=${KOPS_STATE_STORE}
                     export NAME=${CLUSTER_NAME}
 
+                    # Wait for API server to become available
+                    for i in {1..30}; do
+                        if kops validate cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} --wait 1m >/dev/null; then
+                            echo "Cluster is ready!"
+                            break
+                        else
+                            echo "Still waiting for cluster to be ready (attempt \$i/30)..."
+                            sleep 30
+                        fi
+                    done
+
                     # Export kubeconfig
                     kops export kubeconfig --name=\${NAME} --admin
                     kubectl cluster-info
-
-                    # Wait for nodes with timeout and better status checks
-                    timeout 600 bash -c -- '
-                    while true; do
-                        READY_NODES=\$(kubectl get nodes 2>/dev/null | grep "Ready" | wc -l)
-                        TOTAL_NODES=\$(kubectl get nodes 2>/dev/null | grep -v "NAME" | wc -l)
-                        
-                        if [ "\$READY_NODES" -eq "\$TOTAL_NODES" ] && [ "\$TOTAL_NODES" -ge 2 ]; then
-                            echo "All \$TOTAL_NODES nodes are ready!"
-                            break
-                        else
-                            echo "Ready nodes: \$READY_NODES/\$TOTAL_NODES"
-                            kubectl get nodes
-                            sleep 30
-                        fi
-                    done'
                     """
                 }
             }
@@ -107,16 +102,14 @@ pipeline {
                     echo "Cleaning up any previous installation..."
                     helm uninstall python-app 2>/dev/null || true
 
-                    echo "Deploying application using Helm with extended timeout..."
+                    echo "Deploying application using Helm..."
                     helm upgrade --install python-app ${HELM_CHART_PATH} \\
                         --set image.repository=${IMAGE_NAME} \\
                         --set image.tag=${IMAGE_TAG} \\
                         --wait \\
-                        --timeout 15m \\
+                        --timeout 10m \\
                         --atomic \\
-                        --debug \\
-                        --set resources.requests.cpu=100m \\
-                        --set resources.requests.memory=128Mi
+                        --debug
                     """
                 }
             }
@@ -126,20 +119,11 @@ pipeline {
             steps {
                 script {
                     sh """
-                    echo "Verifying deployment status..."
+                    echo "Verifying deployment..."
                     kubectl rollout status deployment/python-app --timeout=300s
-                    
-                    echo "Pod status:"
-                    kubectl get pods -o wide -w
-                    
-                    echo "Service details:"
-                    kubectl describe svc python-app
-                    
+                    kubectl get pods -o wide
                     echo "Application endpoint:"
                     kubectl get svc python-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-                    
-                    echo "Tailing application logs for 10 seconds:"
-                    kubectl logs -l app.kubernetes.io/name=python-app --tail=50 --follow --timestamps=true --since=10s || true
                     """
                 }
             }
@@ -149,36 +133,19 @@ pipeline {
     post {
         success {
             echo "✅ Cluster created and application deployed successfully!"
-            script {
-                sh """
-                echo "Final cluster status:"
-                kubectl get all
-                
-                echo "Application URL:"
-                kubectl get svc python-app -o jsonpath='http://{.status.loadBalancer.ingress[0].hostname}:{.spec.ports[0].port}'
-                """
-            }
         }
         failure {
             echo "❌ Pipeline failed. Check the logs above."
             script {
                 sh """
-                echo "Gathering diagnostic information..."
-                kubectl get events --sort-by='.lastTimestamp'
-                kubectl describe pods -l app.kubernetes.io/name=python-app
+                echo "Gathering diagnostics..."
+                export AWS_DEFAULT_REGION=${AWS_REGION}
+                kops validate cluster --name=${CLUSTER_NAME} --state=${KOPS_STATE_STORE} || true
+                kops get clusters --state=${KOPS_STATE_STORE} || true
                 
                 echo "Cleaning up cluster..."
-                export AWS_DEFAULT_REGION=${AWS_REGION}
                 kops delete cluster --name=${CLUSTER_NAME} --yes || true
                 """
-            }
-        }
-        always {
-            script {
-                sh """
-                echo "Pipeline completed with status: ${currentBuild.result}"
-                """
-                archiveArtifacts artifacts: '**/kubeconfig', allowEmptyArchive: true
             }
         }
     }
