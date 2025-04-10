@@ -1,4 +1,4 @@
-////// another attempt lets go
+//// correction
 pipeline {
     agent any
 
@@ -79,7 +79,7 @@ pipeline {
                     # Wait for API server to become available using kubectl get nodes with retries
                     for i in {1..30}; do
                         kubectl get nodes --request-timeout='5s' > /dev/null 2>&1
-                        if [ $? -eq 0 ]; then
+                        if [ \$? -eq 0 ]; then
                             echo "Cluster is ready!"
                             break
                         else
