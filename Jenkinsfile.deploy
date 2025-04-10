@@ -1,4 +1,4 @@
-// re did the pipeline script to give time for helm
+// no repo in the ec2
 pipeline {
     agent any
 
