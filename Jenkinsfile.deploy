@@ -164,7 +164,7 @@ pipeline {
                 script {
                     sh """
                     echo "🔍 Verifying application deployment..."
-                    kubectl rollout status deployment/python-app --timeout=300s
+                    kubectl rollout status deployment/pythonapp --timeout=300s
                     kubectl get pods -o wide
                     echo "🌐 Application endpoint:"
                     kubectl get svc python-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' || echo "⚠️ Service may not be using a LoadBalancer"
