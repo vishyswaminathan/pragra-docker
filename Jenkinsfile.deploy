@@ -1,4 +1,4 @@
-//// correction
+//// correction to this pipeline
 pipeline {
     agent any
 
@@ -67,29 +67,36 @@ pipeline {
             }
         }
 
-        stage('Wait for Cluster to be Ready') {
+         stage('Wait for Cluster to be Ready') {
             steps {
                 script {
-                    echo "Waiting for cluster to become ready (this may take 10-15 minutes)..."
+                    echo "Waiting for cluster to become ready using 'kops validate cluster'..."
+
                     sh """
                     export AWS_DEFAULT_REGION=${AWS_REGION}
                     export KOPS_STATE_STORE=${KOPS_STATE_STORE}
                     export NAME=${CLUSTER_NAME}
 
-                    # Wait for API server to become available using kubectl get nodes with retries
-                    for i in {1..30}; do
-                        kubectl get nodes --request-timeout='5s' > /dev/null 2>&1
+                    # Retry 'kops validate cluster' up to 10 times
+                    for i in {1..10}; do
+                        echo "Validating cluster (attempt \$i/10)..."
+                        kops validate cluster --name=\${NAME} --state=\${KOPS_STATE_STORE}
                         if [ \$? -eq 0 ]; then
-                            echo "Cluster is ready!"
+                            echo "✅ Cluster is validated and ready!"
                             break
                         else
-                            echo "Still waiting for cluster to be ready (attempt \$i/30)..."
+                            echo "⏳ Cluster not ready yet. Retrying in 30 seconds..."
                             sleep 30
+                        fi
+                        if [ \$i -eq 10 ]; then
+                            echo "❌ Cluster did not become ready in time."
+                            exit 1
                         fi
                     done
 
                     # Export kubeconfig
                     kops export kubeconfig --name=\${NAME} --admin
+                    echo "ℹ️ Cluster Info:"
                     kubectl cluster-info || true
                     """
                 }
