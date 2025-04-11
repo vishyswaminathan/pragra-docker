@@ -42,35 +42,48 @@ pipeline {
         }
 
         stage('Create Kubernetes Cluster with Kops') {
-            steps {
-                script {
-                    sh """
-                    export AWS_DEFAULT_REGION=${AWS_REGION}
-                    export KOPS_STATE_STORE=${KOPS_STATE_STORE}
-                    export NAME=${CLUSTER_NAME}
+    steps {
+        script {
+            sh """
+            export AWS_DEFAULT_REGION=${AWS_REGION}
+            export KOPS_STATE_STORE=${KOPS_STATE_STORE}
+            export NAME=${CLUSTER_NAME}
 
-                    echo "🔧 Creating Kubernetes cluster: ${CLUSTER_NAME}"
+            echo "🔧 Checking for existing Kubernetes cluster: \${NAME}"
 
-                    # Create cluster only if it doesn't already exist
-                    if ! kops get cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} > /dev/null 2>&1; then
-                        kops create cluster --name=\${NAME} \\
-                            --state=\${KOPS_STATE_STORE} \\
-                            --zones=${ZONES} \\
-                            --dns private \\
-                            --node-count=2 \\
-                            --node-size=t3.small \\
-                            --master-size=t3.medium \\
-                            --node-volume-size=12 \\
-                            --master-volume-size=12 \\
-                            --ssh-public-key=${SSH_PUBLIC_KEY_PATH} \\
-                            --yes
-                    else
-                        echo "⚠️ Cluster already exists. Skipping creation."
-                    fi
-                    """
-                }
-            }
+            if ! kops get cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} > /dev/null 2>&1; then
+                echo "🚀 Creating Kubernetes cluster: \${NAME}"
+
+                kops create cluster --name=\${NAME} \\
+                    --state=\${KOPS_STATE_STORE} \\
+                    --zones=${ZONES} \\
+                    --dns private \\
+                    --node-count=2 \\
+                    --node-size=t3.small \\
+                    --master-size=t3.medium \\
+                    --node-volume-size=12 \\
+                    --master-volume-size=12 \\
+                    --ssh-public-key=${SSH_PUBLIC_KEY_PATH} \\
+                    --yes
+
+                echo "⚙️  Updating cluster (to apply config)"
+                kops update cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} --yes
+
+                echo "📥 Exporting kubeconfig"
+                kops export kubeconfig --name=\${NAME} --state=\${KOPS_STATE_STORE}
+
+                echo "🕵️ Validating cluster (this may take a few minutes)"
+                kops validate cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} --wait 10m
+
+            else
+                echo "⚠️ Cluster already exists. Skipping creation."
+                echo "📥 Exporting kubeconfig anyway"
+                kops export kubeconfig --name=\${NAME} --state=\${KOPS_STATE_STORE}
+            fi
+            """
         }
+    }
+}
 
        stage('Wait for Cluster to be Ready') {
     steps {
