@@ -1,4 +1,3 @@
-//// correction to this pipeline
 pipeline {
     agent any
 
@@ -41,6 +40,26 @@ pipeline {
             }
         }
 
+        stage('Delete Existing Cluster if Present') {
+            steps {
+                script {
+                    sh """
+                    export AWS_DEFAULT_REGION=${AWS_REGION}
+                    export KOPS_STATE_STORE=${KOPS_STATE_STORE}
+                    export NAME=${CLUSTER_NAME}
+
+                    echo "Checking if cluster exists..."
+                    if kops get cluster --name=\${NAME} --state=\${KOPS_STATE_STORE}; then
+                        echo "⚠️ Cluster already exists. Deleting it before creation..."
+                        kops delete cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} --yes
+                    else
+                        echo "✅ No existing cluster found. Proceeding..."
+                    fi
+                    """
+                }
+            }
+        }
+
         stage('Create Kubernetes Cluster with Kops') {
             steps {
                 script {
@@ -67,17 +86,15 @@ pipeline {
             }
         }
 
-         stage('Wait for Cluster to be Ready') {
+        stage('Wait for Cluster to be Ready') {
             steps {
                 script {
                     echo "Waiting for cluster to become ready using 'kops validate cluster'..."
-
                     sh """
                     export AWS_DEFAULT_REGION=${AWS_REGION}
                     export KOPS_STATE_STORE=${KOPS_STATE_STORE}
                     export NAME=${CLUSTER_NAME}
 
-                    # Retry 'kops validate cluster' up to 10 times
                     for i in {1..10}; do
                         echo "Validating cluster (attempt \$i/10)..."
                         kops validate cluster --name=\${NAME} --state=\${KOPS_STATE_STORE}
@@ -94,7 +111,6 @@ pipeline {
                         fi
                     done
 
-                    # Export kubeconfig
                     kops export kubeconfig --name=\${NAME} --admin
                     echo "ℹ️ Cluster Info:"
                     kubectl cluster-info || true
@@ -150,7 +166,7 @@ pipeline {
                 export AWS_DEFAULT_REGION=${AWS_REGION}
                 kops validate cluster --name=${CLUSTER_NAME} --state=${KOPS_STATE_STORE} || true
                 kops get clusters --state=${KOPS_STATE_STORE} || true
-                
+
                 echo "Cleaning up cluster..."
                 kops delete cluster --name=${CLUSTER_NAME} --yes || true
                 """
