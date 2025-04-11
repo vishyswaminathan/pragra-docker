@@ -107,18 +107,19 @@ pipeline {
         } 
 
         stage('Validate Kubernetes Cluster') {
-            steps {
-                sh """
-                export AWS_DEFAULT_REGION=${AWS_REGION}
-                export KOPS_STATE_STORE=${KOPS_STATE_STORE}
-                export NAME=${CLUSTER_NAME}
+    steps {
+        sh """
+        export AWS_DEFAULT_REGION=${AWS_REGION}
+        export KOPS_STATE_STORE=${KOPS_STATE_STORE}
+        export NAME=${CLUSTER_NAME}
+        export KUBECONFIG=\$HOME/.kube/config
 
-                echo "🔧 Validating existing Kubernetes cluster: \${NAME}"
-                kops export kubeconfig --name=\${NAME} --state=\${KOPS_STATE_STORE}
-                kops validate cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} --wait 10m
-                """
-            }
-        }
+        echo "🔧 Validating existing Kubernetes cluster: \${NAME}"
+        kops export kubeconfig --name=\${NAME} --state=\${KOPS_STATE_STORE} --admin
+        kops validate cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} --wait 10m
+        """
+    }
+}
 
         stage('Deploy Application with Helm') {
             steps {
