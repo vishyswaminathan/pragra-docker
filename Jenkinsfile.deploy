@@ -17,7 +17,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    echo "Verifying AWS configuration..."
+                    echo "✅ Verifying AWS configuration..."
                     aws sts get-caller-identity
                     aws s3 ls ${KOPS_STATE_STORE} || echo "S3 bucket access verified"
                     """
@@ -30,30 +30,10 @@ pipeline {
                 script {
                     sh """
                     if [ ! -f ${SSH_PUBLIC_KEY_PATH} ]; then
-                        echo "ERROR: SSH public key not found at ${SSH_PUBLIC_KEY_PATH}"
+                        echo "❌ ERROR: SSH public key not found at ${SSH_PUBLIC_KEY_PATH}"
                         exit 1
                     else
-                        echo "SSH key found at ${SSH_PUBLIC_KEY_PATH}"
-                    fi
-                    """
-                }
-            }
-        }
-
-        stage('Delete Existing Cluster if Present') {
-            steps {
-                script {
-                    sh """
-                    export AWS_DEFAULT_REGION=${AWS_REGION}
-                    export KOPS_STATE_STORE=${KOPS_STATE_STORE}
-                    export NAME=${CLUSTER_NAME}
-
-                    echo "Checking if cluster exists..."
-                    if kops get cluster --name=\${NAME} --state=\${KOPS_STATE_STORE}; then
-                        echo "⚠️ Cluster already exists. Deleting it before creation..."
-                        kops delete cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} --yes
-                    else
-                        echo "✅ No existing cluster found. Proceeding..."
+                        echo "✅ SSH key found at ${SSH_PUBLIC_KEY_PATH}"
                     fi
                     """
                 }
@@ -68,19 +48,24 @@ pipeline {
                     export KOPS_STATE_STORE=${KOPS_STATE_STORE}
                     export NAME=${CLUSTER_NAME}
 
-                    echo "Creating Kubernetes cluster: ${CLUSTER_NAME}"
-                    echo "Using SSH key from: ${SSH_PUBLIC_KEY_PATH}"
+                    echo "🔧 Creating Kubernetes cluster: ${CLUSTER_NAME}"
 
-                    kops create cluster --name=\${NAME} \\
-                        --state=\${KOPS_STATE_STORE} \\
-                        --zones=${ZONES} \\
-                        --node-count=2 \\
-                        --node-size=t3.small \\
-                        --master-size=t3.medium \\
-                        --node-volume-size=12 \\
-                        --master-volume-size=12 \\
-                        --ssh-public-key=${SSH_PUBLIC_KEY_PATH} \\
-                        --yes
+                    # Create cluster only if it doesn't already exist
+                    if ! kops get cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} > /dev/null 2>&1; then
+                        kops create cluster --name=\${NAME} \\
+                            --state=\${KOPS_STATE_STORE} \\
+                            --zones=${ZONES} \\
+                            --dns private \\
+                            --node-count=2 \\
+                            --node-size=t3.small \\
+                            --master-size=t3.medium \\
+                            --node-volume-size=12 \\
+                            --master-volume-size=12 \\
+                            --ssh-public-key=${SSH_PUBLIC_KEY_PATH} \\
+                            --yes
+                    else
+                        echo "⚠️ Cluster already exists. Skipping creation."
+                    fi
                     """
                 }
             }
@@ -89,17 +74,17 @@ pipeline {
         stage('Wait for Cluster to be Ready') {
             steps {
                 script {
-                    echo "Waiting for cluster to become ready using 'kops validate cluster'..."
+                    echo "⏳ Waiting for cluster to become ready..."
+
                     sh """
                     export AWS_DEFAULT_REGION=${AWS_REGION}
                     export KOPS_STATE_STORE=${KOPS_STATE_STORE}
                     export NAME=${CLUSTER_NAME}
 
                     for i in {1..10}; do
-                        echo "Validating cluster (attempt \$i/10)..."
-                        kops validate cluster --name=\${NAME} --state=\${KOPS_STATE_STORE}
-                        if [ \$? -eq 0 ]; then
-                            echo "✅ Cluster is validated and ready!"
+                        echo "🔁 Validating cluster (attempt \$i/10)..."
+                        if kops validate cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} --cloud-only; then
+                            echo "✅ Cluster is validated and ready (cloud-only)!"
                             break
                         else
                             echo "⏳ Cluster not ready yet. Retrying in 30 seconds..."
@@ -111,8 +96,8 @@ pipeline {
                         fi
                     done
 
+                    # Export kubeconfig for kubectl usage
                     kops export kubeconfig --name=\${NAME} --admin
-                    echo "ℹ️ Cluster Info:"
                     kubectl cluster-info || true
                     """
                 }
@@ -123,10 +108,10 @@ pipeline {
             steps {
                 script {
                     sh """
-                    echo "Cleaning up any previous installation..."
+                    echo "🧹 Cleaning up any previous Helm install..."
                     helm uninstall python-app 2>/dev/null || true
 
-                    echo "Deploying application using Helm..."
+                    echo "🚀 Deploying application using Helm..."
                     helm upgrade --install python-app ${HELM_CHART_PATH} \\
                         --set image.repository=${IMAGE_NAME} \\
                         --set image.tag=${IMAGE_TAG} \\
@@ -143,11 +128,11 @@ pipeline {
             steps {
                 script {
                     sh """
-                    echo "Verifying deployment..."
+                    echo "🔍 Verifying application deployment..."
                     kubectl rollout status deployment/python-app --timeout=300s
                     kubectl get pods -o wide
-                    echo "Application endpoint:"
-                    kubectl get svc python-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+                    echo "🌐 Application endpoint:"
+                    kubectl get svc python-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' || echo "⚠️ Service may not be using a LoadBalancer"
                     """
                 }
             }
@@ -162,12 +147,12 @@ pipeline {
             echo "❌ Pipeline failed. Check the logs above."
             script {
                 sh """
-                echo "Gathering diagnostics..."
+                echo "📦 Gathering diagnostics..."
                 export AWS_DEFAULT_REGION=${AWS_REGION}
-                kops validate cluster --name=${CLUSTER_NAME} --state=${KOPS_STATE_STORE} || true
+                kops validate cluster --name=${CLUSTER_NAME} --state=${KOPS_STATE_STORE} --cloud-only || true
                 kops get clusters --state=${KOPS_STATE_STORE} || true
 
-                echo "Cleaning up cluster..."
+                echo "🧨 Cleaning up cluster..."
                 kops delete cluster --name=${CLUSTER_NAME} --yes || true
                 """
             }
