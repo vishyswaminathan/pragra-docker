@@ -1,4 +1,4 @@
-/// changed the "waitfor for cluster stage"
+/// replaced the "wait  for cluster stage"
 pipeline {
     agent any
 
@@ -72,7 +72,7 @@ pipeline {
             }
         }
 
-        stage('Wait for Cluster to be Ready') {
+       stage('Wait for Cluster to be Ready') {
     steps {
         script {
             echo "⏳ Waiting for cluster to become ready..."
@@ -84,7 +84,7 @@ pipeline {
 
             echo "📡 Waiting for Kubernetes API to be reachable..."
 
-            for i in {1..15}; do
+            for i in \$(seq 1 15); do
                 echo "🔍 Attempt \$i/15: Validating cluster..."
                 if kops validate cluster --name=\${NAME} --state=\${KOPS_STATE_STORE}; then
                     echo "✅ Cluster validation passed!"
@@ -94,7 +94,7 @@ pipeline {
                     sleep 30
                 fi
 
-                if [ \$i -eq 15 ]; then
+                if [ "\$i" -eq 15 ]; then
                     echo "❌ Cluster did not become ready in time."
                     exit 1
                 fi
@@ -103,20 +103,27 @@ pipeline {
             echo "📂 Exporting kubeconfig for Helm..."
             kops export kubeconfig --admin --name=\${NAME}
 
-            # Double-check that API is reachable before Helm runs
-            for i in {1..10}; do
+            echo "📶 Checking Kubernetes API health with kubectl..."
+
+            for i in \$(seq 1 10); do
                 if kubectl get nodes > /dev/null 2>&1; then
                     echo "✅ kubectl can access the cluster."
                     break
                 else
-                    echo "📶 Waiting for DNS/API to be resolvable..."
+                    echo "🌐 Kubernetes API still not reachable. Waiting 20 seconds..."
                     sleep 20
+                fi
+
+                if [ "\$i" -eq 10 ]; then
+                    echo "❌ kubectl could not reach the cluster."
+                    exit 1
                 fi
             done
             """
         }
     }
 }
+
 
 
         stage('Deploy Application with Helm') {
