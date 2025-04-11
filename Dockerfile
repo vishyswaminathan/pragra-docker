@@ -10,7 +10,7 @@ EXPOSE 80
 WORKDIR /app
 
 # Copy source code from host into container
-COPY python-code/ /app/
+COPY python/ /app/
 CMD ["python3", "ops.py"]
 
 
