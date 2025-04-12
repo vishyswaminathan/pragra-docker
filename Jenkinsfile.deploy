@@ -1,4 +1,4 @@
-// changed the location for the code
+// deploying application to test prom and grafana
 pipeline {
     agent any
 
