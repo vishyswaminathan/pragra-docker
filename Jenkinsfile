@@ -7,15 +7,15 @@ pipeline {
         IMAGE_NAME = 'vishyswaminathan/python-image:v1'
     }
 
-    stage('Clone Repo') {
-    steps {
-        sh """
-            sudo rm -rf /root/pragra-docker || true
-            sudo git clone git@github.com:vishyswaminathan/pragra-docker.git /root/pragra-docker
-        """
-    }
-}
-
+    stages {
+        stage('Clone Repo') {
+            steps {
+                sh """
+                    sudo rm -rf /root/pragra-docker || true
+                    sudo git clone git@github.com:vishyswaminathan/pragra-docker.git /root/pragra-docker
+                """
+            }
+        }
 
         stage('Build Docker Image') {
             steps {
@@ -61,4 +61,5 @@ pipeline {
         }
     }
 }
+
 
