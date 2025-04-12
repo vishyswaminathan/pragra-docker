@@ -65,6 +65,14 @@ pipeline {
 
         # 👇 Export kubeconfig after cluster is created
         kops export kubeconfig --name=\${NAME} --state=\${KOPS_STATE_STORE} --admin
+ # Make kubeconfig available globally
+    mkdir -p /root/.kube
+    cp /var/lib/jenkins/.kube/config /root/.kube/config
+
+    # Also set default KUBECONFIG for future sessions
+    echo 'export KUBECONFIG=/var/lib/jenkins/.kube/config' >> /etc/profile
+    echo 'export KUBECONFIG=/var/lib/jenkins/.kube/config' >> /root/.bashrc
+
         """
     }
 }
