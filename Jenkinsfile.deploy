@@ -1,4 +1,4 @@
-// re doing the pipeline to export file once again
+// allowed jenkins to be able to write to root directory.
 pipeline {
     agent any
 
