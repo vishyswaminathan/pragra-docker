@@ -1,4 +1,4 @@
-// re doing the pipeline to export file once again
+// re doing the pipeline to export file
 pipeline {
     agent any
 
@@ -38,37 +38,37 @@ pipeline {
         }
 
         stage('Create Kubernetes Cluster with Kops') {
-            steps {
-                sh """
-                export AWS_DEFAULT_REGION=${AWS_REGION}
-                export KOPS_STATE_STORE=${KOPS_STATE_STORE}
-                export NAME=${CLUSTER_NAME}
-                export KUBECONFIG=\$HOME/.kube/config
+    steps {
+        sh """
+        export AWS_DEFAULT_REGION=${AWS_REGION}
+        export KOPS_STATE_STORE=${KOPS_STATE_STORE}
+        export NAME=${CLUSTER_NAME}
+        export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                echo "🔧 Checking for existing Kubernetes cluster: \${NAME}"
-                if ! kops get cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} > /dev/null 2>&1; then
-                    echo "🚀 Creating Kubernetes cluster: \${NAME}"
-                    kops create cluster --name=\${NAME} \\
-                        --state=\${KOPS_STATE_STORE} \\
-                        --zones=${ZONES} \\
-                        --dns private \\
-                        --node-count=2 \\
-                        --node-size=t3.small \\
-                        --master-size=t3.medium \\
-                        --node-volume-size=12 \\
-                        --master-volume-size=12 \\
-                        --ssh-public-key=${SSH_PUBLIC_KEY_PATH} \\
-                        --yes
+        echo "🔧 Checking for existing Kubernetes cluster: \${NAME}"
+        if ! kops get cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} > /dev/null 2>&1; then
+            echo "🚀 Creating Kubernetes cluster: \${NAME}"
+            kops create cluster --name=\${NAME} \\
+                --state=\${KOPS_STATE_STORE} \\
+                --zones=${ZONES} \\
+                --dns private \\
+                --node-count=2 \\
+                --node-size=t3.small \\
+                --master-size=t3.medium \\
+                --node-volume-size=12 \\
+                --master-volume-size=12 \\
+                --ssh-public-key=${SSH_PUBLIC_KEY_PATH} \\
+                --yes
 
-                    kops update cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} --yes
-                else
-                    echo "⚠️ Cluster already exists. Skipping creation."
-                fi
+            kops update cluster --name=\${NAME} --state=\${KOPS_STATE_STORE} --yes
+        fi
 
-                kops export kubeconfig --name=\${NAME} --state=\${KOPS_STATE_STORE} --admin
-                """
-            }
-        }
+        # 👇 Export kubeconfig after cluster is created
+        kops export kubeconfig --name=\${NAME} --state=\${KOPS_STATE_STORE} --admin
+        """
+    }
+}
+
 
         stage('Wait for Cluster to be Ready') {
             steps {
@@ -123,23 +123,25 @@ pipeline {
         }
 
         stage('Deploy Application with Helm') {
-            steps {
-                sh """
-                export KUBECONFIG=\$HOME/.kube/config
-                echo "🧹 Cleaning up previous Helm release..."
-                helm uninstall python-app 2>/dev/null || true
+    steps {
+        sh """
+        export KUBECONFIG=/var/lib/jenkins/.kube/config
 
-                echo "🚀 Deploying Helm chart..."
-                helm upgrade --install python-app ${HELM_CHART_PATH} \\
-                    --set image.repository=${IMAGE_NAME} \\
-                    --set image.tag=${IMAGE_TAG} \\
-                    --wait \\
-                    --timeout 10m \\
-                    --atomic \\
-                    --debug
-                """
-            }
-        }
+        echo "🧹 Cleaning up previous Helm release..."
+        helm uninstall python-app 2>/dev/null || true
+
+        echo "🚀 Deploying Helm chart..."
+        helm upgrade --install python-app ${HELM_CHART_PATH} \\
+            --set image.repository=${IMAGE_NAME} \\
+            --set image.tag=${IMAGE_TAG} \\
+            --wait \\
+            --timeout 10m \\
+            --atomic \\
+            --debug
+        """
+    }
+}
+
 
         stage('Verify Deployment') {
             steps {
