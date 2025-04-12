@@ -70,8 +70,9 @@ pipeline {
     cp /var/lib/jenkins/.kube/config /root/.kube/config
 
     # Also set default KUBECONFIG for future sessions
-    echo 'export KUBECONFIG=/var/lib/jenkins/.kube/config' >> /etc/profile
-    echo 'export KUBECONFIG=/var/lib/jenkins/.kube/config' >> /root/.bashrc
+    echo 'export KUBECONFIG=/var/lib/jenkins/.kube/config' | sudo tee -a /etc/profile
+echo 'export KUBECONFIG=/var/lib/jenkins/.kube/config' | sudo tee -a /root/.bashrc
+
 
         """
     }
