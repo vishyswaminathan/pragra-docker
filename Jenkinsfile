@@ -1,5 +1,7 @@
 // THIS JENKINS FILE FINALLY WORKED - WINNER. updated docker remove image step
 // GIT_CREDENTIALS = credentials('github-credentials-id') testing AGAIN
+// THIS JENKINS FILE FINALLY WORKED - WINNER. updated docker remove image step
+// GIT_CREDENTIALS = credentials('github-credentials-id') testing AGAIN
 pipeline {
     agent any
 
@@ -7,15 +9,15 @@ pipeline {
         IMAGE_NAME = 'vishyswaminathan/python-image:v1'
     }
 
-    stage('Clone Repo') {
-    steps {
-        sh """
-            sudo rm -rf /opt/pragra-docker || true
-            sudo git clone git@github.com:vishyswaminathan/pragra-docker.git /opt/pragra-docker
-        """
-    }
-}
-
+    stages {
+        stage('Clone Repo') {
+            steps {
+                sh """
+                    sudo rm -rf /opt/pragra-docker || true
+                    sudo git clone git@github.com:vishyswaminathan/pragra-docker.git /opt/pragra-docker
+                """
+            }
+        }
 
         stage('Build Docker Image') {
             steps {
@@ -36,7 +38,7 @@ pipeline {
                         }
                     }
                 }
-            
+            }
         }
 
         stage('Cleanup Local Docker Image') {
