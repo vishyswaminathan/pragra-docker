@@ -1,4 +1,4 @@
-// allowed jenkins to be able to write to root directory and more
+// allowed jenkins to be able to write to root and granted root priv.
 pipeline {
     agent any
 
