@@ -13,8 +13,8 @@ pipeline {
         stage('Clone Repo') {
             steps {
                 sh """
-                    sudo rm -rf /opt/pragra-docker || true
-                    sudo git clone git@github.com:vishyswaminathan/pragra-docker.git /opt/pragra-docker
+                     rm -rf /opt/pragra-docker || true
+                     git clone git@github.com:vishyswaminathan/pragra-docker.git /opt/pragra-docker
                 """
             }
         }
