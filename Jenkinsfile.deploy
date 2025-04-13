@@ -1,4 +1,4 @@
-// allowed jenkins to be able to write to root and granted root priv.
+// allowed jenkins to be able to write to root and granted root priv- agains
 pipeline {
     agent any
 
