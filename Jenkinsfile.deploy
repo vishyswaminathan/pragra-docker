@@ -1,5 +1,6 @@
 // allowed jenkins to be able to write to root and granted root priv- trying again
 // this time trying the automated deployment with argoCD again
+//back after 2 weeks.. lets try the pipeline again
 pipeline {
     agent any
 
