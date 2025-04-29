@@ -29,23 +29,25 @@ pipeline {
         }
        
 stage('Install Trivy') {
-            steps {
-                script {
-                    echo "Checking if Trivy is installed..."
-                    sh """
-                        if ! command -v trivy > /dev/null; then
-                            echo "Trivy not found. Installing..."
-                            sudo apt-get update -y
-                            sudo apt-get install wget -y
-                            wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.0_Linux-64bit.deb
-                            sudo dpkg -i trivy_0.50.0_Linux-64bit.deb
-                        else
-                            echo "Trivy already installed."
-                        fi
-                    """
-                }
-            }
+    steps {
+        script {
+            echo "Checking if Trivy is installed..."
+            sh """
+                if ! command -v trivy > /dev/null; then
+                    echo "Trivy not found. Installing latest version..."
+                    sudo apt-get update -y
+                    sudo apt-get install wget -y
+                    wget -q https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.61.1_Linux-64bit.deb -O trivy_latest.deb
+                    sudo dpkg -i trivy_latest.deb
+                    rm trivy_latest.deb
+                else
+                    echo "Trivy already installed."
+                fi
+            """
         }
+    }
+}
+
 
 
         stage('Trivy Scan') {
