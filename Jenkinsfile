@@ -1,5 +1,6 @@
 // THIS JENKINS FILE FINALLY WORKED - WINNER. updated docker remove image step
 // GIT_CREDENTIALS = credentials('github-credentials-id') testing AGAIN
+// added trivy installation and scan stage
 
 pipeline {
     agent any
@@ -23,6 +24,37 @@ pipeline {
             steps {
                 script {
                     docker.build("${IMAGE_NAME}")
+                }
+            }
+        }
+       
+stage('Install Trivy') {
+            steps {
+                script {
+                    echo "Checking if Trivy is installed..."
+                    sh """
+                        if ! command -v trivy > /dev/null; then
+                            echo "Trivy not found. Installing..."
+                            sudo apt-get update -y
+                            sudo apt-get install wget -y
+                            wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.0_Linux-64bit.deb
+                            sudo dpkg -i trivy_0.50.0_Linux-64bit.deb
+                        else
+                            echo "Trivy already installed."
+                        fi
+                    """
+                }
+            }
+        }
+
+
+        stage('Trivy Scan') {
+            steps {
+                script {
+                    echo "Scanning Docker image with Trivy"
+                    sh """
+                        trivy image --exit-code 1 --severity CRITICAL,HIGH ${IMAGE_NAME}
+                    """
                 }
             }
         }
