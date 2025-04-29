@@ -3,6 +3,10 @@
     LABEL "Author"="Vishy"
     LABEL "Project"="python"
     
+# Update and upgrade base OS packages to reduce CVEs (vulnerabilities)
+RUN apt-get update && apt-get upgrade -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+
     # Install system dependencies and create a virtual environment
     RUN python3 -m venv /opt/venv
     
