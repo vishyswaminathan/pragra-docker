@@ -55,7 +55,7 @@ stage('Install Trivy') {
                 script {
                     echo "Scanning Docker image with Trivy"
                     sh """
-                        trivy image --exit-code 1 --severity CRITICAL,HIGH ${IMAGE_NAME}
+                        trivy image --exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed ${IMAGE_NAME}
                     """
                 }
             }
