@@ -1,6 +1,7 @@
 // THIS JENKINS FILE FINALLY WORKED - WINNER. updated docker remove image step
 // GIT_CREDENTIALS = credentials('github-credentials-id') testing AGAIN
-// added trivy installation and scan stage - retry this.
+// added trivy installation and scan stage - retry this. 
+//added sonarqube stage
 
 pipeline {
     agent any
