@@ -20,6 +20,32 @@ pipeline {
             }
         }
 
+
+stage('Code Analysis with SonarQube') {
+            environment {
+                scannerHome = tool 'sonar6.2'
+            }
+            steps {
+                dir('/opt/pragra-docker') {
+                    withSonarQubeEnv('sonarserver') {
+                        sh '''
+                            ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=pragra \
+                            -Dsonar.projectName=pragra \
+                            -Dsonar.projectVersion=1.0 \
+                            -Dsonar.sources=python \
+                            -Dsonar.sourceEncoding=UTF-8
+                        '''
+                    }
+
+                    timeout(time: 10, unit: 'MINUTES') {
+                        waitForQualityGate abortPipeline: true
+                    }
+                }
+            }
+        }
+
+
         stage('Build Docker Image') {
             steps {
                 script {
