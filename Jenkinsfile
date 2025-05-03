@@ -1,7 +1,7 @@
 // THIS JENKINS FILE FINALLY WORKED - WINNER. updated docker remove image step
 // GIT_CREDENTIALS = credentials('github-credentials-id') testing AGAIN
 // added trivy installation and scan stage - retry this. 
-//added sonar webhook public ip once again
+//added sonar webhook  again
 
 pipeline {
     agent any
