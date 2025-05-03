@@ -8,6 +8,7 @@ pipeline {
         CLUSTER_NAME = 'pythonapp.k8s.local'
         KOPS_STATE_STORE = 's3://pragra-kops'
         AWS_REGION = 'us-east-1'
+        SLACK_CHANNEL = '#jenkins'
         ZONES = 'us-east-1a,us-east-1b'
         IMAGE_NAME = 'vishyswaminathan/python-image'
         IMAGE_TAG = 'latest'
@@ -191,3 +192,15 @@ echo 'export KUBECONFIG=/var/lib/jenkins/.kube/config' | sudo tee -a /root/.bash
         }
     }
 }
+
+post {
+        success {
+            slackSend(channel: "${SLACK_CHANNEL}", message: "✅ *Pipeline Successful*: `${JOB_NAME}` build #${BUILD_NUMBER} (<${BUILD_URL}|View Build>)")
+        }
+        failure {
+            slackSend(channel: "${SLACK_CHANNEL}", message: "🚨 *Pipeline Failed*: `${JOB_NAME}` build #${BUILD_NUMBER} (<${BUILD_URL}|View Build>)")
+        }
+        always {
+            cleanWs()
+        }
+    }
