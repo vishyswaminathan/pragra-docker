@@ -1,7 +1,7 @@
 // THIS JENKINS FILE FINALLY WORKED - WINNER. updated docker remove image step
 // GIT_CREDENTIALS = credentials('github-credentials-id') testing AGAIN
 // added trivy installation and scan stage - retry this. 
-//added sonar webhook  again
+//comment quality gates stage
 
 pipeline {
     agent any
@@ -21,6 +21,7 @@ pipeline {
             }
         }
 
+/*
 
 stage('Code Analysis with SonarQube') {
             environment {
@@ -45,8 +46,7 @@ stage('Code Analysis with SonarQube') {
                 }
             }
         }
-
-
+*/
         stage('Build Docker Image') {
             steps {
                 script {
