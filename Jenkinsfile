@@ -1,7 +1,7 @@
 // THIS JENKINS FILE FINALLY WORKED - WINNER. updated docker remove image step
 // GIT_CREDENTIALS = credentials('github-credentials-id') testing AGAIN
 // added trivy installation and scan stage - retry this. 
-//comment quality gates stage- testing
+//testing pipeline
 
 pipeline {
     agent any
